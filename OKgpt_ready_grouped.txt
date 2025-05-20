@@ -1,7 +1,0 @@
-# === 1_WORD ===
-
-# === 2_WORDS ===
-
-# === 3_WORDS ===
-
-# === 4_OR_MORE_WORDS ===
