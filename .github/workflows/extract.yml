@@ -93,7 +93,8 @@ jobs:
           python step3_gpt_process.py \
             --context translatable_flat_sentences.json \
             --translated segments_only.json \
-            --api-key "$OPENAI_API_KEY" \
+            --api-key dummykey/
+            --dry-run/
             --primary-lang "${{ github.event.inputs.lang }}" \
             --target-lang "${{ github.event.inputs.target_lang }}" \
             $(if [ -n "${{ github.event.inputs.secondary_lang }}" ]; then \
