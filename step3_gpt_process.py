@@ -117,6 +117,7 @@ def parse_gpt_output(gpt_output_file, target_lang):
     
     return translations
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="GPT Translation Processor")
     parser.add_argument("--context", required=True, help="translatable_flat_sentences.json")
@@ -126,13 +127,16 @@ if __name__ == "__main__":
     parser.add_argument("--primary-lang", required=True)
     parser.add_argument("--secondary-lang")
     parser.add_argument("--target-lang", required=True)
-    
+    parser.add_argument("--dry-run", action="store_true", help="Skip OpenAI API processing")
+
     args = parser.parse_args()
-    
-    # Validate input files first
+
     validate_input_files(args.context, args.translated)
-    
-    # Generate GPT-ready input
+
+    total_start = time.time()
+
+    # Step 1: Generate GPT input
+    t0 = time.time()
     intermediate_file = "gpt_input.txt"
     build_gpt_friendly_input(
         args.context,
@@ -141,18 +145,26 @@ if __name__ == "__main__":
         args.target_lang,
         args.primary_lang
     )
-    
-    # Process with API
-    process_with_api(
-        intermediate_file,
-        args.output,
-        args.api_key,
-        args
-    )
-    
-    # Generate final translations
+    print(f"⏱️ GPT input generated in {time.time() - t0:.2f} seconds")
+
+    # Step 2: Process with API, unless dry-run
+    if not args.dry_run:
+        t1 = time.time()
+        process_with_api(
+            intermediate_file,
+            args.output,
+            args.api_key,
+            args
+        )
+        print(f"⏱️ OpenAI translation completed in {time.time() - t1:.2f} seconds")
+    else:
+        print("⚠️ Dry run enabled — skipped OpenAI API processing.")
+
+    # Step 3: Parse GPT output
+    t2 = time.time()
     final_translations = parse_gpt_output(args.output, args.target_lang)
-    
     with open("openai_translations.json", "w", encoding="utf-8") as f:
         json.dump(final_translations, f, indent=2, ensure_ascii=False)
-    print("✅ Saved openai_translations.json")
+    print(f"✅ Saved openai_translations.json in {time.time() - t2:.2f} seconds")
+
+    print(f"⏱️ Total time: {time.time() - total_start:.2f} seconds")
