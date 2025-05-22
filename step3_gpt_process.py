@@ -70,9 +70,9 @@ def process_with_api(input_file, output_file, api_key, args, max_retries=3):
    - Explanations or additional text
 
 Examples:
-- Input: `en: "Submit"` → Output: `FR: Envoyer`
-- Input: `zh: "苹果"` → Output: `FR: 苹果`
-- Input: `<p>en: Text</p>` → Output: `FR: <p>Texte</p>`
+- Input: `en: Submit` → Output: `{args.target_lang}: Envoyer`
+- Input: `zh: 苹果` → Output: `{args.target_lang}: 苹果`
+- Input: `en: <p>Text</p>` → Output: `{args.target_lang}: <p>Texte</p>`
 """
 
     results = []
