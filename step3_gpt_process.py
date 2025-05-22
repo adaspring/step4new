@@ -76,10 +76,10 @@ Compare the original with the current translation to determine if improvement is
 - **KEEP**: If current translation is accurate, natural, and appropriate
 
 **OUTPUT FORMAT:**
-Return ONLY the refined {args.target_lang} translation:
+Return ONLY the improved {args.target_lang} translation:
 {args.target_lang}: [your_translation]
 DO NOT include:
-   - HTML tags, unless they appear in {translated_text}
+   - HTML tags, unless they appear explicit in the current {args.target_lang} translation
    - Explanations or additional text
 
 **EXAMPLES:**
