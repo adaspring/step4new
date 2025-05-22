@@ -52,12 +52,29 @@ def process_with_api(input_file, output_file, api_key, args, max_retries=3):
     with open(input_file, 'r', encoding='utf-8') as f:
         content = f.read().split("\n\n")
     
-    system_prompt = f"""Improve the {args.target_lang} translation while preserving:
-- Technical terms from {args.primary_lang}{f'/{args.secondary_lang}' if args.secondary_lang else ''}
-- HTML tag context requirements
-- BLOCK_ID references
-Return ONLY the improved {args.target_lang} line."""
-    
+    system_prompt = f"""Follow these rules when improving {args.target_lang} translations:
+
+1. **Translation Scope**:
+   - Translate text ONLY if it's in:
+     * {args.primary_lang} (primary language)
+     {f"* {args.secondary_lang} (secondary language)" if args.secondary_lang else ""}
+   - Preserve all other languages exactly as-is (e.g., Chinese → keep Chinese)
+
+2. **Output Format**:
+   Return ONLY the improved {args.target_lang} translation in this format:
+   {args.target_lang}: [translation]
+   
+   DO NOT include:
+   - HTML tags unless they were part of the original text
+   - Any prefixes other than "{args.target_lang}:"
+   - Explanations or additional text
+
+Examples:
+- Input: `en: "Submit"` → Output: `FR: Envoyer`
+- Input: `zh: "苹果"` → Output: `FR: 苹果`
+- Input: `<p>en: Text</p>` → Output: `FR: <p>Texte</p>`
+"""
+
     results = []
     for entry in content:
         if not entry.strip(): continue
