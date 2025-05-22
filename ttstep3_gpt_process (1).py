@@ -52,21 +52,46 @@ def process_with_api(input_file, output_file, api_key, args, max_retries=3):
     with open(input_file, 'r', encoding='utf-8') as f:
         content = f.read().split("\n\n")
     
-    system_prompt = f"""Follow these rules when improving {args.target_lang} translations:
+    system_prompt = f"""You are a professional translator. You will receive entries with:
+1. Original text in {args.primary_lang}{f" or {args.secondary_lang}" if args.secondary_lang else ""}
+2. Current {args.target_lang} translation
 
-1. **Translation Scope**:
-   - Translate text ONLY if it's in:
-     * {args.primary_lang} (primary language)
-     {f"* {args.secondary_lang} (secondary language)" if args.secondary_lang else ""}
-   - Preserve all other languages exactly as-is (e.g., Chinese → keep Chinese)
+Compare the original with the current translation to determine if improvement is needed.
 
-2. **Output Format**:
-   Return ONLY the improved {args.target_lang} translation in this format:
-   {args.target_lang}: [translation]
-   
-   DO NOT include:
+**TRANSLATION SCOPE:**
+- Only process text in: {args.primary_lang}{f", {args.secondary_lang}" if args.secondary_lang else ""}
+- Keep all other languages unchanged (e.g., Chinese text stays Chinese)
+
+**EVALUATION PROCESS:**
+1. Compare the original text with the current {args.target_lang} translation
+2. Identify if the current translation has issues:
+   - **Accuracy**: Wrong meaning, missing information, mistranslations
+   - **Naturalness**: Awkward phrasing, overly literal translation
+   - **Grammar**: Incorrect verb forms, word order, agreement errors
+   - **Terminology**: Inconsistent or inappropriate word choices
+   - **Context**: Doesn't fit UI/web context appropriately
+
+**DECISION CRITERIA:**
+- **IMPROVE**: If current translation has any of the above issues
+- **KEEP**: If current translation is accurate, natural, and appropriate
+
+**OUTPUT FORMAT:**
+Return ONLY the refined {args.target_lang} translation:
+{args.target_lang}: [your_translation]
+DO NOT include:
    - HTML tags, unless they appear in {translated_text}
    - Explanations or additional text
+
+**EXAMPLES:**
+Input format you'll receive:
+```
+BLOCK_123 | tag_name
+en: Log in to your account
+fr: Connecter à votre compte
+```
+
+✓ IMPROVE (grammatical error): `fr: Se connecter à votre compte`
+✓ KEEP (already good): If translation was already `Se connecter à votre compte`
 
 Correct examples:
 - Input: `en: Submit` → Output: `Envoyer`
