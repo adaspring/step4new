@@ -65,7 +65,7 @@ def process_with_api(input_file, output_file, api_key, args, max_retries=3):
    {args.target_lang}: [translation]
    
    DO NOT include:
-   - HTML tags, unless they appear in {translated_text}
+   - HTML tags, unless they appear in {{translated_text}}
    - Explanations or additional text
 
 Correct examples:
@@ -75,10 +75,13 @@ Correct examples:
 Incorrect examples: 
 - Input: `en: Text` → Output: `<p>Texte</p>`
 """
-
     results = []
     for entry in content:
         if not entry.strip(): continue
+        
+        # Extract the existing translated line (3rd line)
+        lines = entry.strip().split('\n')
+        existing_translation = lines[2] if len(lines) >= 3 else ""
         
         for attempt in range(max_retries):
             try:
@@ -86,24 +89,31 @@ Incorrect examples:
                     model="gpt-4o",
                     messages=[
                         {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": entry.strip()}
+                        {"role": "user", "content": entry + f"\nCurrent translation: {existing_translation}"}
                     ],
                     temperature=0.2,
                     max_tokens=1000
                 )
                 
                 improved_trans = response.choices[0].message.content.strip()
-                results.append(f"{entry.strip()}\n{args.target_lang}: {improved_trans}\n")
+                
+                # Minimal validation
+                if not improved_trans.startswith(f"{args.target_lang}:"):
+                    improved_trans = f"{args.target_lang}: {improved_trans.split(':')[-1].strip()}"
+                
+                results.append(f"{entry.strip()}\n{improved_trans}\n")
                 break
+                
             except Exception as e:
                 if attempt == max_retries - 1:
                     results.append(f"{entry.strip()}\n# ERROR: {str(e)[:50]}\n")
                 time.sleep(2 ** attempt)
         
-        time.sleep(1)  # Rate limit buffer
+        time.sleep(1)
     
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write("\n\n".join(results))
+
 
 def parse_gpt_output(gpt_output_file, target_lang):
     """Parse GPT output into a translations dictionary"""
