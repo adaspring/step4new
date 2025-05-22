@@ -65,14 +65,15 @@ def process_with_api(input_file, output_file, api_key, args, max_retries=3):
    {args.target_lang}: [translation]
    
    DO NOT include:
-   - HTML tags unless they were part of the original text
-   - Any prefixes other than "{args.target_lang}:"
+   - HTML tags, unless they appear in {translated_text}
    - Explanations or additional text
 
-Examples:
-- Input: `en: Submit` → Output: `{args.target_lang}: Envoyer`
-- Input: `zh: 苹果` → Output: `{args.target_lang}: 苹果`
-- Input: `en: <p>Text</p>` → Output: `{args.target_lang}: <p>Texte</p>`
+Correct examples:
+- Input: `en: Submit` → Output: `Envoyer`
+- Input: `zh: 苹果` → Output:`苹果`
+- Input: `en: <p>Text</p>` → Output: `<p>Texte</p>`
+Incorrect examples: 
+- Input: `en: Text` → Output: `<p>Texte</p>`
 """
 
     results = []
