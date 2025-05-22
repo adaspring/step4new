@@ -72,8 +72,8 @@ Compare the original with the current translation to determine if improvement is
    - **Context**: Doesn't fit UI/web context appropriately
 
 **DECISION CRITERIA:**
-- **IMPROVE**: If current translation has any of the above issues
-- **KEEP**: If current translation is accurate, natural, and appropriate
+- **Do IMPROVE**: If current translation has any of the above issues
+- **Do not IMPROVE**: If current translation is accurate, natural, and appropriate
 
 **OUTPUT FORMAT:**
 Return ONLY the improved {args.target_lang} translation:
