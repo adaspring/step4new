@@ -45,7 +45,7 @@
       "tag": "<p>"
     },
     {
-      "BLOCK_63_S1": "Placeholder",
+      "BLOCK_60_S1": "Placeholder",
       "tag": "<aria-placeholder>"
     }
   ],
@@ -139,20 +139,20 @@
       "tag": "<alt>"
     },
     {
-      "BLOCK_58_S1": "Image title",
+      "BLOCK_59_S1": "Image title",
       "tag": "<title>"
     },
     {
-      "BLOCK_60_S1": "Name input",
+      "BLOCK_61_S1": "Name input",
       "tag": "<aria-label>"
-    },
-    {
-      "BLOCK_61_S1": "Name field",
-      "tag": "<data-label>"
     },
     {
       "BLOCK_62_S1": "Enter name",
       "tag": "<placeholder>"
+    },
+    {
+      "BLOCK_63_S1": "Name field",
+      "tag": "<data-label>"
     },
     {
       "BLOCK_66_S1": "Example Title",
@@ -181,7 +181,7 @@
       "tag": "<p>"
     },
     {
-      "BLOCK_59_S1": "Caption for image",
+      "BLOCK_58_S1": "Caption for image",
       "tag": "<data-caption>"
     },
     {
