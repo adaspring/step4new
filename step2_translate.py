@@ -2,7 +2,7 @@ import os
 import json
 import deepl
 import argparse
-import re
+import regex as re 
 from pathlib import Path
 
 
