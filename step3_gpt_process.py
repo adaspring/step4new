@@ -58,9 +58,11 @@ def process_with_api(input_file, output_file, api_key, args, max_retries=3):
 
 Compare the original with the current translation to determine if improvement is needed.
 
-**TRANSLATION SCOPE:**
-- Only process text in: {args.primary_lang}{f", {args.secondary_lang}" if args.secondary_lang else ""}
-- Keep all other languages unchanged, do not improve them. 
+**TRANSLATION SCOPE AND LANGUAGE IDENTIFICATION:**
+-Only translate text if the original text is in:
+- **{args.primary_lang}**: Translate to {args.target_lang}
+{f"- **{args.secondary_lang}**: Translate to {args.target_lang}" if args.secondary_lang else ""}
+- **For Any other language**: Return the original text unchanged.
 
 **EVALUATION PROCESS:**
 1. Compare the original text with the current {args.target_lang} translation
