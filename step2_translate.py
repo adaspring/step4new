@@ -94,16 +94,6 @@ def create_efficient_translatable_map(
                     allowed_langs = {lang.lower() for lang in [primary_lang, secondary_lang] if lang}
                     original_text = translation_texts[idx]
 
-                    # Short-text bypass
-                    if len(original_text.strip()) < 15 and secondary_lang:
-                        try:
-                            result = translator.translate_text(original_text, target_lang=target_lang)
-                            translated_batch.append(result.text)
-                            continue
-                        except Exception as e:
-                            translated_batch.append(original_text)
-                            continue
-
                     if allowed_langs and detected_lang in allowed_langs:
                         result = translator.translate_text(original_text, target_lang=target_lang)
                         translated_batch.append(result.text)
