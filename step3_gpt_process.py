@@ -77,7 +77,7 @@ Compare the original with the current translation to determine if improvement is
 
 **OUTPUT FORMAT:**
 Return ONLY the improved {args.target_lang} translation:
-{args.target_lang}: [your_translation]
+[your_translation]
 DO NOT include:
    - HTML tags, unless they appear explicit in the current {args.target_lang} translation
    - Explanations or additional text
@@ -98,7 +98,10 @@ Correct examples:
 - Input: `zh: 苹果` → Output:`苹果`
 - Input: `en: <p>Text</p>` → Output: `<p>Texte</p>`
 Incorrect examples: 
-- Input: `en: Text` → Output: `<p>Texte</p>`
+- Input: `en: Text` → Output: `<p>Texte</p>` (added HTML)
+- Input: `en: <p>Text</p>` → Output: `Texte` (removed HTML)
+
+
 """
 
     results = []
