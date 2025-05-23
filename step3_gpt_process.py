@@ -150,10 +150,8 @@ def parse_gpt_output(gpt_output_file, target_lang):
             continue
         
         block_line = lines[0]
-        improved_trans = next(
-            (line for line in lines if line.startswith(f"{target_lang}:")),
-            None
-        )
+        target_lines = [line for line in lines if line.startswith(f"{target_lang}:")]
+        improved_trans = target_lines[-1] if target_lines else None
         
         block_id = block_line.split(" | ")[0].strip()
         
