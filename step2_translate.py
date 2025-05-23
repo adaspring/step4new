@@ -60,14 +60,11 @@ def create_efficient_translatable_map(
 
     
     def clean_text(text):
-        """Clean text for language detection only"""
-        text = re.sub(r'^(.*?):\s*', '', text)  # Remove prefixes
-        text = re.sub(r'[^\w\sÀ-ÿ=+-]', ' ', text)
-        text = re.sub(r'[^\w\sà-üÀ-Ü]', ' ', text)  # Clean special chars
-        text = re.sub(r'\s+', ' ', text)  # Replace multiple spaces with one
-        text = re.sub(r'^\W+|\W+$', '', text)  # Trim edges
-        return text.strip()[:500]  # Limit for detection
-
+        text = re.sub(r'^(.*?):\s*', '', text)
+        text = re.sub(r'[^\p{L}\p{N}\s=+-]', ' ', text, flags=re.UNICODE)
+        text = re.sub(r'\s+', ' ', text).strip()
+        return text[:500]
+        
     # Language-aware batch translation
     if texts_to_translate:
         print(f"Processing {len(texts_to_translate)} segments with language validation...")
