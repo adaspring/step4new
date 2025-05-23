@@ -60,7 +60,7 @@ Compare the original with the current translation to determine if improvement is
 
 **TRANSLATION SCOPE:**
 - Only process text in: {args.primary_lang}{f", {args.secondary_lang}" if args.secondary_lang else ""}
-- Keep all other languages unchanged (e.g., Chinese text stays Chinese)
+- Keep all other languages unchanged, do not improve them. 
 
 **EVALUATION PROCESS:**
 1. Compare the original text with the current {args.target_lang} translation
