@@ -91,6 +91,7 @@ def process_with_api(input_file, output_file, api_key, args, max_retries=3, batc
     with open(input_file, 'r', encoding='utf-8') as f:
         content = [entry.strip() for entry in f.read().split("\n\n") if entry.strip()]
     
+
     system_prompt = f"""You are a professional translator. You will receive entries with:
 1. Original text in {args.primary_lang}{f" or {args.secondary_lang}" if args.secondary_lang else ""}
 2. Current {args.target_lang} translation
@@ -115,6 +116,15 @@ Compare the original with the current translation to determine if improvement is
 **DECISION CRITERIA:**
 - **Do IMPROVE**: If current translation has any of the above issues
 - **Do not IMPROVE**: If current translation is accurate, natural, and appropriate
+Decision Criteria EXAMPLE:
+Input format you'll receive:
+```
+BLOCK_123 | tag_name
+en: Log in to your account
+fr: Connecter à votre compte
+```
+✓ Do IMPROVE (grammatical error): `fr: Se connecter à votre compte`
+✓ Do not IMPROVE (already good): If translation was already `Se connecter à votre compte`
 
 **OUTPUT FORMAT:**
 Return ONLY the improved {args.target_lang} translation:
@@ -122,18 +132,11 @@ Return ONLY the improved {args.target_lang} translation:
 DO NOT include:
    - HTML tags, unless they appear explicit in the current {args.target_lang} translation
    - Explanations or additional text
-
-**EXAMPLES:**
-Input format you'll receive:
-
-✓ IMPROVE (grammatical error): `fr: Se connecter à votre compte`
-✓ KEEP (already good): If translation was already `Se connecter à votre compte`
-
-Correct examples:
+Correct output format examples:
 - Input: `en: Submit` → Output: `Envoyer`
 - Input: `zh: 苹果` → Output:`苹果`
 - Input: `en: <p>Text</p>` → Output: `<p>Texte</p>`
-Incorrect examples: 
+Incorrect output format examples: 
 - Input: `en: Text` → Output: `<p>Texte</p>` (added HTML)
 - Input: `en: <p>Text</p>` → Output: `Texte` (removed HTML)
 """
