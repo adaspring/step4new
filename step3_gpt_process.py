@@ -5,6 +5,17 @@ import time
 import argparse
 from pathlib import Path
 from json.decoder import JSONDecodeError
+import logging
+from openai import RateLimitError
+
+# Configure logging (add right after imports)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    filename='translation_processor.log'
+)
+logger = logging.getLogger(__name__)
+
 
 def validate_input_files(*files):
     """Ensure all input files exist before processing"""
@@ -190,6 +201,60 @@ fr: Connecter à votre compte
                         batch_response = batch_response.split('```json')[1].split('```')[0].strip()
                     elif batch_response.startswith('```'):
                         batch_response = batch_response.split('```')[1].split('```')[0].strip()
+
+
+def process_with_api_direct_json(input_file, api_key, args, max_retries=5, batch_size=10):
+    """Process translations with enhanced rate limit handling and logging"""
+    validate_input_files(input_file, args.translated)
+    
+    # Load all original translations
+    with open(args.translated, 'r', encoding='utf-8') as f:
+        original_translations = json.load(f)
+    
+    # Get all expected blocks
+    expected_blocks = count_expected_blocks(input_file)
+    logger.info(f"Expecting {len(expected_blocks)} translation blocks in total")
+    
+    client = openai.OpenAI(api_key=api_key)
+    
+    with open(input_file, 'r', encoding='utf-8') as f:
+        content = [entry.strip() for entry in f.read().split("\n\n") if entry.strip()]
+    
+    # Build system prompt (YOUR ORIGINAL PROMPT - UNCHANGED)
+    system_prompt = f"""You are a professional translator. 
+    [REST OF YOUR EXISTING PROMPT REMAINS EXACTLY THE SAME]
+    """
+  
+    # Process in batches
+    batches = [content[i:i+batch_size] for i in range(0, len(content), batch_size)]
+    final_translations = {}
+    rate_limit_wait = 5  # Initial wait time for rate limits (seconds)
+    
+    for batch_idx, batch in enumerate(batches):
+        logger.info(f"Processing batch {batch_idx+1}/{len(batches)} ({len(batch)} entries)")
+        batch_input = "\n\n".join(batch)
+        
+        for attempt in range(max_retries):
+            try:
+                response = client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[
+                        {"role": "system", "content": system_prompt},  # YOUR PROMPT
+                        {"role": "user", "content": batch_input}
+                    ],
+                    temperature=0.2,
+                    max_tokens=4000,
+                    response_format={"type": "json_object"}
+                )
+                
+                batch_response = response.choices[0].message.content.strip()
+                
+                try:
+                    # Clean JSON response
+                    if batch_response.startswith('```json'):
+                        batch_response = batch_response.split('```json')[1].split('```')[0].strip()
+                    elif batch_response.startswith('```'):
+                        batch_response = batch_response.split('```')[1].split('```')[0].strip()
                     
                     batch_translations = json.loads(batch_response)
                     
@@ -198,59 +263,68 @@ fr: Connecter à votre compte
                     missing_in_batch = batch_block_ids - set(batch_translations.keys())
                     
                     if missing_in_batch:
-                        print(f"⚠️ Batch {batch_idx+1} missing {len(missing_in_batch)} blocks - filling with originals")
+                        logger.warning(f"Batch {batch_idx+1} missing {len(missing_in_batch)} blocks - filling with originals")
                         for block_id in missing_in_batch:
                             batch_translations[block_id] = original_translations.get(block_id, "")
                     
                     final_translations.update(batch_translations)
-                    print(f"✅ Batch {batch_idx+1} processed ({len(batch_translations)} entries)")
+                    rate_limit_wait = max(1, rate_limit_wait / 2)  # Reduce wait time on success
+                    logger.info(f"Processed batch {batch_idx+1} ({len(batch_translations)} entries)")
                     break
                     
                 except JSONDecodeError as json_error:
-                    print(f"⚠️ Batch {batch_idx+1} JSON error: {str(json_error)[:100]}")
+                    logger.error(f"JSON decode failed (batch {batch_idx+1}): {str(json_error)[:100]}")
                     if attempt == max_retries - 1:
-                        print(f"🔄 Processing batch {batch_idx+1} individually as fallback")
+                        logger.info("Falling back to individual processing")
                         for entry in batch:
                             final_translations.update(process_individual_entry(
                                 client, system_prompt, entry, original_translations
                             ))
                     else:
                         time.sleep(2 ** attempt)
-                        continue
+                    continue
                         
+            except RateLimitError as rle:
+                wait_time = min(60, rate_limit_wait * (2 ** attempt))  # Cap at 60s
+                logger.warning(f"Rate limit exceeded. Waiting {wait_time}s...")
+                time.sleep(wait_time)
+                rate_limit_wait = wait_time  # Remember last wait time
+                continue
+                
             except Exception as e:
-                print(f"❌ Batch {batch_idx+1} attempt {attempt+1} failed: {str(e)[:100]}")
+                logger.error(f"Batch {batch_idx+1} failed: {str(e)}")
                 if attempt == max_retries - 1:
-                    print(f"🔄 Processing batch {batch_idx+1} individually as fallback")
+                    logger.info("Falling back to individual processing")
                     for entry in batch:
                         final_translations.update(process_individual_entry(
                             client, system_prompt, entry, original_translations
                         ))
-                else:
-                    time.sleep(2 ** attempt)
+                time.sleep(2 ** attempt)
         
-        time.sleep(1)  # Rate limit buffer
+        # Dynamic delay between batches
+        time.sleep(max(1, rate_limit_wait / 2))
     
-    # Final verification
+    # Final verification and stats
     missing_blocks = expected_blocks - set(final_translations.keys())
     if missing_blocks:
-        print(f"⚠️ Filling {len(missing_blocks)} missing blocks with original translations")
+        logger.warning(f"Filling {len(missing_blocks)} missing blocks with originals")
         for block_id in missing_blocks:
             final_translations[block_id] = original_translations.get(block_id, "")
     
-    # Calculate improvement statistics
     improved_count = sum(
         1 for block_id in expected_blocks 
         if final_translations.get(block_id, "") != original_translations.get(block_id, "")
     )
     
-    print("\n📊 Final Statistics:")
-    print(f"- Total blocks processed: {len(expected_blocks)}")
-    print(f"- Blocks improved: {improved_count}")
-    print(f"- Blocks unchanged: {len(expected_blocks) - improved_count}")
+    logger.info(f"""
+    📊 Final Statistics:
+    - Total blocks: {len(expected_blocks)}
+    - Improved: {improved_count}
+    - Unchanged: {len(expected_blocks) - improved_count}
+    """)
     
     return final_translations
-
+    
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="GPT Translation Processor")
     parser.add_argument("--context", required=True, help="translatable_flat_sentences.json")
