@@ -333,7 +333,7 @@ if __name__ == "__main__":
     parser.add_argument("--primary-lang", required=True)
     parser.add_argument("--secondary-lang")
     parser.add_argument("--target-lang", required=True)
-    parser.add_argument("--batch-size", type=int, default=10, help="Number of entries per batch")
+    parser.add_argument("--batch-size", type=int, default=30, help="Number of entries per batch")
     
     args = parser.parse_args()
     
