@@ -99,6 +99,7 @@ jobs:
             $(if [ -n "${{ github.event.inputs.secondary_lang }}" ]; then \
               echo "--secondary-lang ${{ github.event.inputs.secondary_lang }}"; \
             fi)
+            --max-workers 8 \
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
