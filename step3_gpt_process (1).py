@@ -4,6 +4,7 @@ import openai
 import time
 import argparse
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def validate_input_files(*files):
     """Ensure all input files exist before processing"""
@@ -44,13 +45,13 @@ def build_gpt_friendly_input(context_file, translated_file, output_file, target_
         f.write('\n'.join(lines))
 
 def process_with_api(input_file, output_file, api_key, args, max_retries=3):
-    """Process translations with dynamic language validation"""
+    """Process translations using multithreaded per-entry API calls"""
     validate_input_files(input_file)
-    
+
     client = openai.OpenAI(api_key=api_key)
-    
+
     with open(input_file, 'r', encoding='utf-8') as f:
-        content = f.read().split("\n\n")
+        content = [entry.strip() for entry in f.read().split("\n\n") if entry.strip()]
     
     system_prompt = f"""You are a professional translator. You will receive entries with:
 1. Original text in {args.primary_lang}{f" or {args.secondary_lang}" if args.secondary_lang else ""}
@@ -105,36 +106,38 @@ Incorrect examples:
 
 
 """
-
-    results = []
-    for entry in content:
-        if not entry.strip(): continue
-        
+def process_single(entry):
+        block_id = entry.split("\n", 1)[0].strip()
         for attempt in range(max_retries):
             try:
                 response = client.chat.completions.create(
                     model="gpt-4o",
                     messages=[
                         {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": entry.strip()}
+                        {"role": "user", "content": entry}
                     ],
                     temperature=0.2,
                     max_tokens=1000
                 )
-                
-                improved_trans = response.choices[0].message.content.strip()
-                results.append(f"{entry.strip()}\n{args.target_lang}: {improved_trans}\n")
-                break
+                improved = response.choices[0].message.content.strip()
+                print(f"✓ Success: {block_id}")
+                return f"{entry}\n{args.target_lang}: {improved}\n"
             except Exception as e:
                 if attempt == max_retries - 1:
-                    results.append(f"{entry.strip()}\n# ERROR: {str(e)[:50]}\n")
+                    print(f"✗ Failed: {block_id} | {str(e)[:50]}")
+                    return f"{entry}\n# ERROR: {str(e)[:50]}\n"
+                print(f"... Retrying {block_id} (attempt {attempt + 1})")
                 time.sleep(2 ** attempt)
-        
-        time.sleep(1)  # Rate limit buffer
-    
+
+    results = []
+    with ThreadPoolExecutor(max_workers=args.max_workers) as executor:
+        future_to_entry = {executor.submit(process_single, entry): entry for entry in content}
+        for i, future in enumerate(as_completed(future_to_entry), 1):
+            results.append(future.result())
+
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write("\n\n".join(results))
-
+    
 def parse_gpt_output(gpt_output_file, target_lang):
     """Parse GPT output into a translations dictionary"""
     validate_input_files(gpt_output_file)
@@ -173,6 +176,7 @@ if __name__ == "__main__":
     parser.add_argument("--secondary-lang")
     parser.add_argument("--target-lang", required=True)
     
+    parser.add_argument("--max-workers", type=int, default=5, help="Max concurrent threads for GPT processing")
     args = parser.parse_args()
     
     # Validate input files first
