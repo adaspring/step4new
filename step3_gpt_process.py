@@ -88,8 +88,55 @@ def process_with_api_direct_json(input_file, api_key, args, max_retries=5, batch
     
     # Build system prompt (YOUR ORIGINAL PROMPT - UNCHANGED)
     system_prompt = f"""You are a professional translator. 
-    [REST OF YOUR EXISTING PROMPT REMAINS EXACTLY THE SAME]
-    """
+
+You will receive entries with:
+
+   -BLOCK_ID | tag_name
+   - Original text: Original text in {args.primary_lang}{f" or {args.secondary_lang}" if args.secondary_lang else ""}
+   - Current translation: {args.target_lang} translation
+
+2. For EACH block, you MUST return:
+   - The IMPROVED translation if needed
+   - The Current translation if no        improvement is needed
+- Never omit any block from your response!
+
+
+3. TRANSLATION SCOPE AND LANGUAGE IDENTIFICATION:
+-Compare the original text with the current translation to determine if improvement is needed.
+-Only translate text if the original text is in:
+- **{args.primary_lang}**: Translate to {args.target_lang}
+{f"- **{args.secondary_lang}**: Translate to {args.target_lang}" if args.secondary_lang else ""}
+- **For Any other language**: Return the original text unchanged.
+
+4. EVALUATION OF THE TRANSLATION PROCESS:**
+4.1. Compare the original text with the current {args.target_lang} translation
+4.2. Identify if the current translation has issues:
+   - **Accuracy**: Wrong meaning, missing information, mistranslations
+   - **Naturalness**: Awkward phrasing, overly literal translation
+   - **Grammar**: Incorrect verb forms, word order, agreement errors
+   - **Terminology**: Inconsistent or inappropriate word choices
+   - **Context**: Doesn't fit UI/web context appropriately
+
+4.3.DECISION CRITERIA:
+- **Do IMPROVE**: If current translation has any of the above issues
+- **Do not IMPROVE**: If current translation is accurate, natural, and appropriate
+- **EXAMPLES:**
+Input format you'll receive:
+```
+BLOCK_123 | tag_name
+en: Log in to your account
+fr: Connecter à votre compte
+```
+
+✓Do  IMPROVE (grammatical error): `fr: Se connecter à votre compte`
+✓Do not  IMPROVE (already good): If current translation was already `Se connecter à votre compte`
+
+4. Output MUST be JSON with ALL received BLOCK_IDs:
+   {{
+     "BLOCK_X": "improved_or_current_translation",
+     "BLOCK_Y": "improved_or_current_translation",
+   }}
+   """
   
     # Process in batches
     batches = [content[i:i+batch_size] for i in range(0, len(content), batch_size)]
