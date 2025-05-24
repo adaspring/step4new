@@ -203,7 +203,7 @@ fr: Connecter à votre compte
                         batch_response = batch_response.split('```')[1].split('```')[0].strip()
 
 
-def process_with_api_direct_json(input_file, api_key, args, max_retries=5, batch_size=10):
+def process_with_api_direct_json(input_file, api_key, args, max_retries=5, batch_size=30):
     """Process translations with enhanced rate limit handling and logging"""
     validate_input_files(input_file, args.translated)
     
