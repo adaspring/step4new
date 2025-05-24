@@ -113,4 +113,3 @@ jobs:
             segments_only.json
             gpt_input.txt
             openai_translations.json
-            gpt_processed.txt
