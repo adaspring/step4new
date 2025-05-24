@@ -8,7 +8,6 @@ from json.decoder import JSONDecodeError
 import logging
 from openai import RateLimitError
 
-# Configure logging (add right after imports)
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -16,8 +15,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
-
+# Add this right after the above logging config
+# Ensure critical messages also go to console
+console = logging.StreamHandler()
+console.setLevel(logging.INFO)
+formatter = logging.Formatter('%(levelname)s - %(message)s')
+console.setFormatter(formatter)
+logging.getLogger('').addHandler(console)
 
 def validate_input_files(*files):
     """Ensure all input files exist before processing"""
@@ -242,40 +246,52 @@ fr: Connecter à votre compte
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="GPT Translation Processor")
-    parser.add_argument("--context", required=True, help="translatable_flat_sentences.json")
-    parser.add_argument("--translated", required=True, help="segments_only.json")
-    parser.add_argument("--api-key", required=True)
-    parser.add_argument("--primary-lang", required=True)
-    parser.add_argument("--secondary-lang")
-    parser.add_argument("--target-lang", required=True)
-    parser.add_argument("--batch-size", type=int, default=30, help="Number of entries per batch")
-    
-    args = parser.parse_args()
-    
-    # Validate input files first
-    validate_input_files(args.context, args.translated)
-    
-    # Generate GPT-ready input
-    intermediate_file = "gpt_input.txt"
-    build_gpt_friendly_input(
-        args.context,
-        args.translated,
-        intermediate_file,
-        args.target_lang,
-        args.primary_lang
-    )
-    
-    # Process with API and get final translations
-    final_translations = process_with_api_direct_json(
-        intermediate_file,
-        args.api_key,
-        args,
-        batch_size=args.batch_size
-    )
-    
-    # Save final translations
-    with open("openai_translations.json", "w", encoding="utf-8") as f:
-        json.dump(final_translations, f, indent=2, ensure_ascii=False)
-    
-    print(f"\n✅ Saved {len(final_translations)} translations to openai_translations.json")
+    try:
+        parser = argparse.ArgumentParser(description="GPT Translation Processor")
+        parser.add_argument("--context", required=True, help="translatable_flat_sentences.json")
+        parser.add_argument("--translated", required=True, help="segments_only.json")
+        parser.add_argument("--api-key", required=True)
+        parser.add_argument("--primary-lang", required=True)
+        parser.add_argument("--secondary-lang")
+        parser.add_argument("--target-lang", required=True)
+        parser.add_argument("--batch-size", type=int, default=30, help="Number of entries per batch")
+        
+        args = parser.parse_args()
+        
+        logger.info("Starting translation processor")
+        logger.info(f"Configuration: {vars(args)}")
+        
+        # Validate input files first
+        validate_input_files(args.context, args.translated)
+        
+        # Generate GPT-ready input
+        intermediate_file = "gpt_input.txt"
+        logger.info(f"Generating GPT input file: {intermediate_file}")
+        build_gpt_friendly_input(
+            args.context,
+            args.translated,
+            intermediate_file,
+            args.target_lang,
+            args.primary_lang
+        )
+        
+        # Process with API
+        logger.info(f"Starting API processing with batch size {args.batch_size}")
+        final_translations = process_with_api_direct_json(
+            intermediate_file,
+            args.api_key,
+            args,
+            batch_size=args.batch_size
+        )
+        
+        # Save final translations
+        output_file = "openai_translations.json"
+        with open(output_file, "w", encoding="utf-8") as f:
+            json.dump(final_translations, f, indent=2, ensure_ascii=False)
+        
+        logger.info(f"Successfully saved {len(final_translations)} translations to {output_file}")
+        print(f"\n✅ Saved {len(final_translations)} translations to {output_file}")
+        
+    except Exception as e:
+        logger.critical(f"Fatal error: {str(e)}", exc_info=True)
+        raise
