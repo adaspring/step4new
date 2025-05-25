@@ -92,7 +92,7 @@ def process_individual_entry(client, system_prompt, entry, original_translations
         print(f"❌ Individual entry failed: {str(e)[:50]}")
         return {block_id: original_translations.get(block_id, "")}
 
-def process_with_api_direct_json(input_file, api_key, args, max_retries=3, batch_size=10):
+def process_with_api_direct_json(input_file, api_key, args, max_retries=3, batch_size=30):
     """Process translations with batch processing and complete coverage"""
     validate_input_files(input_file, args.translated)
     
@@ -259,7 +259,7 @@ if __name__ == "__main__":
     parser.add_argument("--primary-lang", required=True)
     parser.add_argument("--secondary-lang")
     parser.add_argument("--target-lang", required=True)
-    parser.add_argument("--batch-size", type=int, default=10, help="Number of entries per batch")
+    parser.add_argument("--batch-size", type=int, default=30, help="Number of entries per batch")
     
     args = parser.parse_args()
     
